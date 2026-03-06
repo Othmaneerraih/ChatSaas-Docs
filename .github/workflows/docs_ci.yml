@@ -1,0 +1,41 @@
+name: Docs Spec CI
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'scripts/check_docs_drift.py'
+      - 'scripts/check_api_vs_docs.py'
+      - 'scripts/check_tools_vs_docs.py'
+      - '.github/workflows/docs_ci.yml'
+
+jobs:
+  docs-contract-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Resolve PR base
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          echo "BASE_REF=origin/${{ github.base_ref }}" >> $GITHUB_ENV
+
+      - name: Canonical/docs drift gate
+        run: |
+          python scripts/check_docs_drift.py --base "$BASE_REF" --head HEAD
+
+      - name: API references vs canonical docs gate
+        run: |
+          python scripts/check_api_vs_docs.py
+
+      - name: Tool references vs canonical docs gate
+        run: |
+          python scripts/check_tools_vs_docs.py
